@@ -1,0 +1,1 @@
+# GLFAFormer-Adaptive-forgery-feature-alignment-for-synthetic-image-detection
