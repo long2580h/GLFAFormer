@@ -37,51 +37,15 @@ def get_val_opt():
     return val_opt
 
 
-def kd(teachermodel, device, data_loader, val_loader):
-    # teachermodel.eval()
-    studentModel = timm.models.deit.deit3_base_patch16_224()
-    studentModel.to(device)
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(studentModel.parameters(), lr=1e-4)
-
-    epochs = 20
-
-    for epoch in range(epochs):
-        for i, data in enumerate(data_loader):
-            student_output = studentModel(data)
-            loss = criterion(student_output, teachermodel)
-            print("Train loss: {}", format(loss))
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            # Validation
-            studentModel.eval()
-            ap, r_acc, f_acc, acc = validate(studentModel.model, val_loader)
-            val_writer.add_scalar('accuracy', acc, model.total_steps)
-            val_writer.add_scalar('ap', ap, model.total_steps)
-            print("(Val @ epoch {}) acc: {}; ap: {}".format(epoch, acc, ap))
-
-    studentModel.save_networks('student.pth')
 
 if __name__ == '__main__':
-    #--------------------------
-    graphviz1 = GraphvizOutput()
-    graphviz1.output_file = 'optimize_parameters.png'
-    graphviz2 = GraphvizOutput()
-    graphviz2.output_file = 'Trainer.png'
-    graphviz3 = GraphvizOutput()
-    graphviz3.output_file = 'get_model.png'
-    #--------------------------
+
 
     opt = TrainOptions().parse()
     val_opt = get_val_opt()
 
 
-    # ---------------------------------------------------
-    with PyCallGraph(output=graphviz3):
-        random_number3 = get_model(opt.arch)
-    # ---------------------------------------------------
+
     data_loader = create_dataloader(opt)
     val_loader = create_dataloader(val_opt)
     model = Trainer(opt)
@@ -90,17 +54,10 @@ if __name__ == '__main__':
 
     early_stopping = EarlyStopping(patience=opt.earlystop_epoch, delta=-0.001,
                                    verbose=True)
-    # 早停策略，防止过拟合，当性能不再改善时就提前停止训练
-    # patience 表示模型在验证集上连续多少个迭代中没有性能提升时，就触发早停法。
-    # delta 表示模型在验证集上的性能提升阈值。
-    # verbose 表示是否打印早停法的详细信息。
+
     start_time = time.time()
     print("Length of data loader: %d" % (len(data_loader)))
 
-    #---------------------------------------------------------------------------------------------------------------------------
-    # teacher = torch.load('E:/Pycharm/UniversalFakeDetect-mailn/UniversalFakeDetect-main/pretrained_weights/fc_weights.pth')
-    # kd(teacher, torch.device("cuda" if torch.cuda.is_availabe else "cpu"), data_loader, val_loader)
-    #---------------------------------------------------------------------------------------------------------------------------
 
     for epoch in range(opt.niter):
 
@@ -110,10 +67,6 @@ if __name__ == '__main__':
             model.set_input(data)
             model.optimize_parameters()
 
-            #---------------------------------------------------
-            with PyCallGraph(output=graphviz1):
-                random_number1 = model.optimize_parameters()
-            #---------------------------------------------------
 
             if model.total_steps % opt.loss_freq == 0:
                 print("Train loss: {} at step: {}".format(model.loss, model.total_steps))
@@ -145,7 +98,3 @@ if __name__ == '__main__':
                 print("Early stopping.")
                 break
         model.train()
-        # ---------------------------------------------------
-        with PyCallGraph(output=graphviz2):
-            random_number2 = model.train()
-        # ---------------------------------------------------
